@@ -1,0 +1,66 @@
+import streamlit as st
+import pandas as pd
+import random
+
+st.set_page_config(page_title="Wingo Color Predictor", layout="centered")
+
+st.title("🔮 Wingo Color Prediction Bot")
+st.markdown("Enter the last **10 game results** to predict the next move.")
+
+# Input form
+with st.form("result_input_form"):
+    data = []
+    st.markdown("### Enter Last 10 Results")
+    for i in range(10):
+        cols = st.columns(3)
+        game_number = cols[0].text_input(f"Game #{i+1} Number", key=f"gn_{i}")
+        result_num = cols[1].number_input(f"Result", min_value=0, max_value=9, key=f"res_{i}")
+        color = cols[2].selectbox("Color", ["Red", "Green", "Violet"], key=f"col_{i}")
+        data.append({
+            "Game Number": game_number,
+            "Result": result_num,
+            "Color": color
+        })
+    submitted = st.form_submit_button("Predict Next")
+
+def analyze_color_trend(colors):
+    # Count occurrences
+    freq = {c: colors.count(c) for c in set(colors)}
+    most_common = max(freq, key=freq.get)
+    return most_common, freq
+
+def predict_number(nums):
+    return max(set(nums), key=nums.count)
+
+def big_small(num): return "Big" if num >= 5 else "Small"
+def even_odd(num): return "Even" if num % 2 == 0 else "Odd"
+
+if submitted:
+    df = pd.DataFrame(data)
+    st.markdown("### 📊 Analysis of Last 10 Games")
+    st.dataframe(df)
+
+    # Color prediction
+    color_list = df["Color"].tolist()
+    color_pred, color_freq = analyze_color_trend(color_list)
+
+    # Number prediction
+    num_list = df["Result"].tolist()
+    number_pred = predict_number(num_list)
+
+    st.markdown("### 🔮 Predicted Next Result")
+    st.success(f"**Color**: {color_pred}")
+    st.info(f"**Number**: {number_pred}")
+    st.warning(f"**Big/Small**: {big_small(number_pred)}")
+    st.warning(f"**Even/Odd**: {even_odd(number_pred)}")
+
+    # Confidence level
+    color_strength = color_list.count(color_pred) / 10
+    if color_strength >= 0.5:
+        conf = "High"
+    elif color_strength >= 0.3:
+        conf = "Medium"
+    else:
+        conf = "Low"
+
+    st.markdown(f"**Prediction Confidence**: `{conf}`")
